@@ -224,9 +224,7 @@ void Display_Manager::initializeCallbacks()
     registerCallback(ACTION_SHUTDOWN_DEVICE, shutdownDevice);
     #endif
 
-    #ifdef USE_BLE
     registerCallback(ACTION_INIT_BLE, initializeBle);
-    #endif
 
     registerInputCallback(MESSAGE_RECEIVED, processMessageReceived);
     registerInputCallback(BUTTON_SOS, openSOS);
@@ -392,9 +390,7 @@ void Display_Manager::generateMenuWindow(uint8_t inputID)
     menuWindow->addMenuItem("Shutdown Device", ACTION_SHUTDOWN_DEVICE);
     #endif
 
-    #ifdef USE_BLE
-    menuWindow->addMenuItem("Init Bluetooth", ACTION_INIT_BLE);
-    #endif
+    menuWindow->addMenuItem("Pair Bluetooth", ACTION_INIT_BLE);
     
     Display_Manager::attachNewWindow(menuWindow);
 
@@ -624,9 +620,11 @@ void Display_Manager::openWiFiRpcWindow(uint8_t inputID)
     window->drawWindow();
 }
 
-#ifdef USE_BLE
 void Display_Manager::initializeBle(uint8_t inputID)
 {
+    PairBluetoothWindow *window = new PairBluetoothWindow(currentWindow);
+    Display_Manager::attachNewWindow(window);
+    window->drawWindow();
+
     System_Utils::initBluetooth();
 }
-#endif

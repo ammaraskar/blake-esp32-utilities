@@ -12,6 +12,7 @@
   ],
   "license": "MIT",
   "dependencies": {
+    "h2zero/esp-nimble-cpp": "^2.3.2",
     "bblanchon/StreamUtils": "^1.7.3",
     "madhephaestus/ESP32Encoder": "^0.10.1",
     "bblanchon/ArduinoJson": "^6.21.2",

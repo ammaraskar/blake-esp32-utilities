@@ -28,6 +28,7 @@
 #include "SaveLocationState.h"
 #include "DiagnosticsWindow.h"
 #include "WiFiRpcWindow.h"
+#include "PairBluetoothWindow.h"
 
 #include "Lock_State.h"
 
@@ -104,9 +105,7 @@ public:
     static void openDiagnosticsWindow(uint8_t inputID);
     static void openWiFiRpcWindow(uint8_t inputID);
 
-    #ifdef USE_BLE
     static void initializeBle(uint8_t inputID);
-    #endif
     // static void callFunctionWindowState(uint8_t inputID);
 
     // Input callbacks

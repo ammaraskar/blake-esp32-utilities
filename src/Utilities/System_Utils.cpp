@@ -469,73 +469,96 @@ bool System_Utils::enableWiFi()
     return true;
 }
 
-#ifdef USE_BLE
+class SystemBLEServer : public NimBLEServerCallbacks {
+    void onConnect(BLEServer* pServer, NimBLEConnInfo& connInfo) override {
+        // Require all connections to be paired.
+        BLEDevice::startSecurity(connInfo.getConnHandle());
+    }
+
+    void onDisconnect(BLEServer* pServer, NimBLEConnInfo& connInfo, int reason) override {
+        // Start advertising again after the old client disconnects.
+        BLEDevice::startAdvertising();
+    }
+
+    void onAuthenticationComplete(NimBLEConnInfo& connInfo) override {
+        if (connInfo.isBonded()) {
+            // TODO: display this on screen
+            // Serial.println("Pairing successful");
+        } else {
+            Serial.println("Pairing failed");
+            // Disconnect them if pairing failed maybe?
+        }
+    }
+
+    uint32_t onPassKeyDisplay() override {
+        uint32_t pass_key = random(100000, 999999);
+        return pass_key;
+    }
+};
+
+class WifiNameCharacteristicCallbacks : public NimBLECharacteristicCallbacks {
+  void onWrite(NimBLECharacteristic* pCharacteristic, NimBLEConnInfo& connInfo) override {
+    std::string value = pCharacteristic->getValue();
+  }
+};
+
+
+class WifiPassCharacteristicCallbacks : public NimBLECharacteristicCallbacks {
+  void onWrite(NimBLECharacteristic* pCharacteristic, NimBLEConnInfo& connInfo) override {
+    std::string value = pCharacteristic->getValue();
+  }
+};
 
 void System_Utils::initBluetooth()
 {
-    #if DEBUG == 1
-    Serial.println("Initializing Bluetooth");
-    #endif
-    esp_err_t ret;
+    // TODO: get beacon name.
+    std::string device_name = FilesystemModule::Utilities::SettingsFile()["Device Name"]["cfgVal"];
+    std::string ble_name = "DegenBeacon " + device_name;
+    BLEDevice::init(ble_name);
 
-    esp_bt_controller_config_t bt_cfg = BT_CONTROLLER_INIT_CONFIG_DEFAULT();
-    ret = esp_bt_controller_init(&bt_cfg);
+    // # Set security parameters
+    // Require pairing (bonding) and SC for secure connection pairing.
+    BLEDevice::setSecurityAuth(/*bonding=*/true, /*mitm=*/true, /*sc=*/true);
+    // State that we can display a PIN code for pairing, but no input supported.
+    BLEDevice::setSecurityIOCap(BLE_HS_IO_DISPLAY_ONLY);
 
+    BLEServer* pServer = BLEDevice::createServer();
+    pServer->setCallbacks(new SystemBLEServer());
 
-    ret = esp_bt_controller_enable(ESP_BT_MODE_BLE);
-    ret = esp_bluedroid_init();
-    ret = esp_bluedroid_enable();
+    BLEService* pService = pServer->createService(DEGEN_SERVICE_UUID);
 
+    BLECharacteristic* pWifiNameCharacteristic = pService->createCharacteristic(
+        WIFI_NAME_CHARACTERISTIC_UUID,
+        NIMBLE_PROPERTY::READ |
+        NIMBLE_PROPERTY::WRITE |
+        NIMBLE_PROPERTY::READ_ENC |
+        NIMBLE_PROPERTY::WRITE_ENC |
+        NIMBLE_PROPERTY::READ_AUTHEN |
+        NIMBLE_PROPERTY::WRITE_AUTHEN
+    );
+    BLECharacteristic* pWifiPassCharacteristic = pService->createCharacteristic(
+        WIFI_PASSWORD_CHARACTERISTIC_UUID,
+        NIMBLE_PROPERTY::READ |
+        NIMBLE_PROPERTY::WRITE |
+        NIMBLE_PROPERTY::READ_ENC |
+        NIMBLE_PROPERTY::WRITE_ENC |
+        NIMBLE_PROPERTY::READ_AUTHEN |
+        NIMBLE_PROPERTY::WRITE_AUTHEN
+    );
+    pWifiNameCharacteristic->setValue("default_ssid");
+    pWifiPassCharacteristic->setValue("default_password");
 
-    #if DEBUG == 1
-    Serial.println("Registering event handlers");
-    #endif
+    pService->start();
 
-    ret = esp_ble_gatts_register_callback(gattsEventHandler);
-    ret = esp_ble_gap_register_callback(gapEventHandler);
+    BLEAdvertising* pAdvertising = BLEDevice::getAdvertising();
+    pAdvertising->setName(ble_name);
+    pAdvertising->addServiceUUID(DEGEN_SERVICE_UUID);
+    // Show up with a watch icon lol.
+    #define BLE_APPEARANCE_GENERIC_WATCH 192
+    pAdvertising->setAppearance(BLE_APPEARANCE_GENERIC_WATCH);
 
-    
-
-    #if DEBUG == 1
-    Serial.println("Bluetooth initialized");
-    #endif
+    BLEDevice::startAdvertising();
 }
-
-void System_Utils::gapEventHandler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t *param)
-{
-    #if DEBUG == 1
-    Serial.print("GAP Event: ");
-    Serial.println(event);
-    #endif
-}
-
-void System_Utils::gattsEventHandler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts_if, esp_ble_gatts_cb_param_t *param)
-{
-    #if DEBUG == 1
-    Serial.print("GATTS Event: ");
-    Serial.println(event);
-    #endif
-}
-
-#endif
-
-// void System_Utils::enableBluetooth()
-// {
-//     enableRadio(ADC_BT);
-//     esp_bt_controller_enable(ESP_BT_MODE_BTDM);
-// }
-
-// void System_Utils::disableBluetooth()
-// {
-//     disableRadio(ADC_BT);
-//     esp_bt_controller_disable();
-// }
-
-// void System_Utils::addCharacteristic(BLECharacteristic &characteristic)
-// {
-//     pService->addCharacteristic(&characteristic);
-//     bleCharacteristics.push_back(&characteristic);
-// }
 
 void System_Utils::disableWiFi()
 {

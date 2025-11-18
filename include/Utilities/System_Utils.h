@@ -17,14 +17,8 @@
 
 #include "esp_rom_crc.h"
 
-#ifdef USE_BLE
-#include "esp_bt.h"
-#include "esp_gap_ble_api.h"
-#include "esp_gatts_api.h"
-#include "esp_bt_defs.h"
-#include "esp_bt_main.h"
-#include "esp_gatt_common_api.h"
-#endif
+#include "FilesystemUtils.h"
+#include <NimBLEDevice.h>
 
 namespace 
 {
@@ -35,14 +29,9 @@ namespace
 
     const char *DEVICE_NAME PROGMEM = "ESP32";
 
-    #ifdef USE_BLE
-    const char *BLE_SERVICE_UUID PROGMEM = "5d49ff2d-b739-4d50-945f-1c5741ca6e2f";
-    #endif
-    // BLECharacteristic BLE_CHARACTERISTIC_SEND_MSGPACK_UUID("08ba298d-31f2-4f68-b24a-15d23c4cfbd3", BLECharacteristic::PROPERTY_NOTIFY);
-    // BLEDescriptor BLE_DESCRIPTOR_SEND_MSGPACK_UUID(BLEUUID((uint16_t)0x2902));
-
-    // BLECharacteristic BLE_CHARACTERISTIC_RECEIVE_MSGPACK_UUID("8dd684a5-0090-4c81-9793-ac7f0d0d6e20", BLECharacteristic::PROPERTY_WRITE);
-    // BLEDescriptor BLE_DESCRIPTOR_RECEIVE_MSGPACK_UUID(BLEUUID((uint16_t)0x2903));
+    const char* DEGEN_SERVICE_UUID = "033c3d34-8405-46db-8326-07169d5353a9";
+    const char* WIFI_NAME_CHARACTERISTIC_UUID = "033c3d35-8405-46db-8326-07169d5353a9";
+    const char* WIFI_PASSWORD_CHARACTERISTIC_UUID = "033c3d36-8405-46db-8326-07169d5353a9";
 }
 
 struct {
@@ -137,14 +126,7 @@ public:
     static TaskHandle_t getTask(int taskID);
 
     // Bluetooth functionality
-    #ifdef USE_BLE
     static void initBluetooth();
-    static void gapEventHandler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t *param);
-    static void gattsEventHandler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts_if, esp_ble_gatts_cb_param_t *param);
-    // static void enableBluetooth();
-    // static void disableBluetooth();
-    // static void addCharacteristic(BLECharacteristic &characteristic);
-    #endif
 
     // WiFi functionality
     static bool enableWiFi();

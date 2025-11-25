@@ -469,29 +469,35 @@ bool System_Utils::enableWiFi()
     return true;
 }
 
+// Bluetooth stuff, maybe consider moving this.
+static bool gBluetoothConnected = false;
+static int gBluetoothPin = 0;
+static bool gBluetoothPaired = false;
+
 class SystemBLEServer : public NimBLEServerCallbacks {
     void onConnect(BLEServer* pServer, NimBLEConnInfo& connInfo) override {
         // Require all connections to be paired.
         BLEDevice::startSecurity(connInfo.getConnHandle());
+        gBluetoothConnected = true;
     }
 
     void onDisconnect(BLEServer* pServer, NimBLEConnInfo& connInfo, int reason) override {
         // Start advertising again after the old client disconnects.
         BLEDevice::startAdvertising();
+        gBluetoothConnected = false;
     }
 
     void onAuthenticationComplete(NimBLEConnInfo& connInfo) override {
         if (connInfo.isBonded()) {
-            // TODO: display this on screen
-            // Serial.println("Pairing successful");
+            gBluetoothPaired = true;
         } else {
-            Serial.println("Pairing failed");
-            // Disconnect them if pairing failed maybe?
+            gBluetoothPaired = false;
         }
     }
 
     uint32_t onPassKeyDisplay() override {
         uint32_t pass_key = random(100000, 999999);
+        gBluetoothPin = pass_key;
         return pass_key;
     }
 };
@@ -511,7 +517,9 @@ class WifiPassCharacteristicCallbacks : public NimBLECharacteristicCallbacks {
 
 void System_Utils::initBluetooth()
 {
-    // TODO: get beacon name.
+    // Can't have both wifi and bluetooth enabled at the same time on the ESP32
+    disableWiFi();
+
     std::string device_name = FilesystemModule::Utilities::SettingsFile()["Device Name"]["cfgVal"];
     std::string ble_name = "DegenBeacon " + device_name;
     BLEDevice::init(ble_name);
@@ -558,6 +566,19 @@ void System_Utils::initBluetooth()
     pAdvertising->setAppearance(BLE_APPEARANCE_GENERIC_WATCH);
 
     BLEDevice::startAdvertising();
+}
+
+bool System_Utils::bluetoothConnected()
+{
+    return gBluetoothConnected;
+}
+bool System_Utils::bluetoothPaired()
+{
+    return gBluetoothPaired;
+}
+int System_Utils::bluetoothPin()
+{
+    return gBluetoothPin;
 }
 
 void System_Utils::disableWiFi()

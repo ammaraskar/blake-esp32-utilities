@@ -127,6 +127,9 @@ public:
 
     // Bluetooth functionality
     static void initBluetooth();
+    static bool bluetoothConnected();
+    static bool bluetoothPaired();
+    static int bluetoothPin();
 
     // WiFi functionality
     static bool enableWiFi();

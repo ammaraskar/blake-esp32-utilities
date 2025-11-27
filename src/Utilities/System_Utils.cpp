@@ -469,116 +469,11 @@ bool System_Utils::enableWiFi()
     return true;
 }
 
-// Bluetooth stuff, maybe consider moving this.
-static bool gBluetoothConnected = false;
-static int gBluetoothPin = 0;
-static bool gBluetoothPaired = false;
-
-class SystemBLEServer : public NimBLEServerCallbacks {
-    void onConnect(BLEServer* pServer, NimBLEConnInfo& connInfo) override {
-        // Require all connections to be paired.
-        BLEDevice::startSecurity(connInfo.getConnHandle());
-        gBluetoothConnected = true;
-    }
-
-    void onDisconnect(BLEServer* pServer, NimBLEConnInfo& connInfo, int reason) override {
-        // Start advertising again after the old client disconnects.
-        BLEDevice::startAdvertising();
-        gBluetoothConnected = false;
-    }
-
-    void onAuthenticationComplete(NimBLEConnInfo& connInfo) override {
-        if (connInfo.isBonded()) {
-            gBluetoothPaired = true;
-        } else {
-            gBluetoothPaired = false;
-        }
-    }
-
-    uint32_t onPassKeyDisplay() override {
-        uint32_t pass_key = random(100000, 999999);
-        gBluetoothPin = pass_key;
-        return pass_key;
-    }
-};
-
-class WifiNameCharacteristicCallbacks : public NimBLECharacteristicCallbacks {
-  void onWrite(NimBLECharacteristic* pCharacteristic, NimBLEConnInfo& connInfo) override {
-    std::string value = pCharacteristic->getValue();
-  }
-};
-
-
-class WifiPassCharacteristicCallbacks : public NimBLECharacteristicCallbacks {
-  void onWrite(NimBLECharacteristic* pCharacteristic, NimBLEConnInfo& connInfo) override {
-    std::string value = pCharacteristic->getValue();
-  }
-};
-
 void System_Utils::initBluetooth()
 {
     // Can't have both wifi and bluetooth enabled at the same time on the ESP32
     disableWiFi();
-
-    std::string device_name = FilesystemModule::Utilities::SettingsFile()["Device Name"]["cfgVal"];
-    std::string ble_name = "DegenBeacon " + device_name;
-    BLEDevice::init(ble_name);
-
-    // # Set security parameters
-    // Require pairing (bonding) and SC for secure connection pairing.
-    BLEDevice::setSecurityAuth(/*bonding=*/true, /*mitm=*/true, /*sc=*/true);
-    // State that we can display a PIN code for pairing, but no input supported.
-    BLEDevice::setSecurityIOCap(BLE_HS_IO_DISPLAY_ONLY);
-
-    BLEServer* pServer = BLEDevice::createServer();
-    pServer->setCallbacks(new SystemBLEServer());
-
-    BLEService* pService = pServer->createService(DEGEN_SERVICE_UUID);
-
-    BLECharacteristic* pWifiNameCharacteristic = pService->createCharacteristic(
-        WIFI_NAME_CHARACTERISTIC_UUID,
-        NIMBLE_PROPERTY::READ |
-        NIMBLE_PROPERTY::WRITE |
-        NIMBLE_PROPERTY::READ_ENC |
-        NIMBLE_PROPERTY::WRITE_ENC |
-        NIMBLE_PROPERTY::READ_AUTHEN |
-        NIMBLE_PROPERTY::WRITE_AUTHEN
-    );
-    BLECharacteristic* pWifiPassCharacteristic = pService->createCharacteristic(
-        WIFI_PASSWORD_CHARACTERISTIC_UUID,
-        NIMBLE_PROPERTY::READ |
-        NIMBLE_PROPERTY::WRITE |
-        NIMBLE_PROPERTY::READ_ENC |
-        NIMBLE_PROPERTY::WRITE_ENC |
-        NIMBLE_PROPERTY::READ_AUTHEN |
-        NIMBLE_PROPERTY::WRITE_AUTHEN
-    );
-    pWifiNameCharacteristic->setValue("default_ssid");
-    pWifiPassCharacteristic->setValue("default_password");
-
-    pService->start();
-
-    BLEAdvertising* pAdvertising = BLEDevice::getAdvertising();
-    pAdvertising->setName(ble_name);
-    pAdvertising->addServiceUUID(DEGEN_SERVICE_UUID);
-    // Show up with a watch icon lol.
-    #define BLE_APPEARANCE_GENERIC_WATCH 192
-    pAdvertising->setAppearance(BLE_APPEARANCE_GENERIC_WATCH);
-
-    BLEDevice::startAdvertising();
-}
-
-bool System_Utils::bluetoothConnected()
-{
-    return gBluetoothConnected;
-}
-bool System_Utils::bluetoothPaired()
-{
-    return gBluetoothPaired;
-}
-int System_Utils::bluetoothPin()
-{
-    return gBluetoothPin;
+    Bluetooth_Utils::initBluetooth();
 }
 
 void System_Utils::disableWiFi()
@@ -818,6 +713,17 @@ void System_Utils::EndOtaRpc(JsonDocument &doc)
     doc["status"] = "OTA complete";
 }
 
+void System_Utils::GetSystemInfoRpc(JsonDocument &doc)
+{
+    doc["DeviceName"] = System_Utils::DeviceName;
+    doc["DeviceID"] = System_Utils::DeviceID;
+    doc["FirmwareVersion"] = FIRMWARE_VERSION_STRING;
+    #ifdef HARDWARE_VERSION
+    doc["HardwareVersion"] = HARDWARE_VERSION;
+    #else
+    doc["HardwareVersion"] = 0;
+    #endif
+}
 
 void System_Utils::sendDisplayContents(Adafruit_SSD1306 *display)
 {

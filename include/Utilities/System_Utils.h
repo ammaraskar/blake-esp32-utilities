@@ -18,7 +18,8 @@
 #include "esp_rom_crc.h"
 
 #include "FilesystemUtils.h"
-#include <NimBLEDevice.h>
+#include "Bluetooth_Utils.h"
+#include "VersionUtils.h"
 
 namespace 
 {
@@ -28,10 +29,6 @@ namespace
     const char * DISPLAY_HEIGHT PROGMEM = "height";
 
     const char *DEVICE_NAME PROGMEM = "ESP32";
-
-    const char* DEGEN_SERVICE_UUID = "033c3d34-8405-46db-8326-07169d5353a9";
-    const char* WIFI_NAME_CHARACTERISTIC_UUID = "033c3d35-8405-46db-8326-07169d5353a9";
-    const char* WIFI_PASSWORD_CHARACTERISTIC_UUID = "033c3d36-8405-46db-8326-07169d5353a9";
 }
 
 struct {
@@ -127,9 +124,6 @@ public:
 
     // Bluetooth functionality
     static void initBluetooth();
-    static bool bluetoothConnected();
-    static bool bluetoothPaired();
-    static int bluetoothPin();
 
     // WiFi functionality
     static bool enableWiFi();
@@ -154,6 +148,7 @@ public:
     static void EndOtaRpc(JsonDocument &doc);
 
     // Debug Companion Functionality
+    static void GetSystemInfoRpc(JsonDocument &doc);
     static void sendDisplayContents(Adafruit_SSD1306 *display);
 
     // Event Handler public invoke functions

@@ -4,6 +4,7 @@
 #include "IpUtils.h"
 #include "RadioUtils.h"
 #include "RpcUtils.h"
+#include "Bluetooth_Utils.h"
 
 namespace
 {
@@ -33,7 +34,7 @@ public:
         OLED_Window::drawWindow();
 
         std::string msg;
-        if (!System_Utils::bluetoothConnected()) {
+        if (!Bluetooth_Utils::bluetoothConnected()) {
             TextFormat tf;
             tf.horizontalAlignment = ALIGN_CENTER_HORIZONTAL;
             tf.verticalAlignment = TEXT_LINE;
@@ -48,14 +49,14 @@ public:
 
             tf.line = 5;
             Display_Utils::printFormattedText("degen.ammaraskar.com", tf);
-        } else if (System_Utils::bluetoothConnected() && !System_Utils::bluetoothPaired()) {
+        } else if (Bluetooth_Utils::bluetoothConnected() && !Bluetooth_Utils::bluetoothPaired()) {
             TextFormat prompt;
             prompt.horizontalAlignment = ALIGN_CENTER_HORIZONTAL;
             prompt.verticalAlignment = ALIGN_CENTER_VERTICAL;
 
-            std::string msg = "PIN: " + std::to_string(System_Utils::bluetoothPin());
+            std::string msg = "PIN: " + std::to_string(Bluetooth_Utils::bluetoothPin());
             Display_Utils::printFormattedText(msg.c_str(), prompt);
-        } else if (System_Utils::bluetoothConnected() && System_Utils::bluetoothPaired()) {
+        } else if (Bluetooth_Utils::bluetoothConnected() && Bluetooth_Utils::bluetoothPaired()) {
             TextFormat prompt;
             prompt.horizontalAlignment = ALIGN_CENTER_HORIZONTAL;
             prompt.verticalAlignment = ALIGN_CENTER_VERTICAL;
